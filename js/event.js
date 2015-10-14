@@ -80,6 +80,7 @@ function main () {
       if (Mode === 1) {
         pushEvent(this, event);
       }
+      //
       if (typeof listener === 'function') {
         listener(event);
       } else {
@@ -134,26 +135,50 @@ function record () {
 }
 function replay () {
   Mode = 2;
-//   EventQueue.forEach(function (v) {
-//     var element = document.querySelector(v.target);
-//     if (!element) {
-//       console.warn(v.target, 'not found');
-//       return;
-//     }
-//     if (v.type === 'click' || v.type === 'mousedown') {
-//       if (v.data.relatedTarget) {
-//         v.data.relatedTarget = document.querySelector(v.data.relatedTarget);
-//       }
-//       var event = new MouseEvent(v.type, v.data);
-//       element.dispatchEvent(event);
-//     }
-//   });
-  asyncForEach(EventQueue, function (v) {
-    if (v.target === '__DOCUMENT__') {
-      var element = document;
-    } else {
-      var element = document.querySelector(v.target);
+  // EventQueue.forEach(function (v) {
+  //   var element = document.querySelector(v.target);
+  //   if (!element) {
+  //     console.warn(v.target, 'not found');
+  //     return;
+  //   }
+  //   if (v.type === 'click' || v.type === 'mousedown') {
+  //     if (v.data.relatedTarget) {
+  //       v.data.relatedTarget = document.querySelector(v.data.relatedTarget);
+  //     }
+  //     var event = new MouseEvent(v.type, v.data);
+  //     console.info('dispatch before');
+  //     element.dispatchEvent(event);
+  //     console.info('dispatch after');
+  //   }
+  // });
+  // asyncForEach(EventQueue, function (v) {
+  //   if (v.target === '__DOCUMENT__') {
+  //     var element = document;
+  //   } else {
+  //     var element = document.querySelector(v.target);
+  //   }
+  //   if (!element) {
+  //     console.warn(v.target, 'not found');
+  //     return;
+  //   }
+  //   if (v.type === 'click' || v.type === 'mousedown') {
+  //     if (v.data.relatedTarget) {
+  //       v.data.relatedTarget = document.querySelector(v.data.relatedTarget);
+  //     }
+  //     var event = new MouseEvent(v.type, v.data);
+  //     console.info('dispatch before');
+  //     element.dispatchEvent(event);
+  //     console.info('dispatch after');
+  //   }
+  // });
+  var i = 0;
+  var handle = setInterval(function () {
+    if (i >= EventQueue.length) {
+      clearInterval(handle);
+      return;
     }
+    var v = EventQueue[i];
+    var element = document.querySelector(v.target);
     if (!element) {
       console.warn(v.target, 'not found');
       return;
@@ -163,9 +188,12 @@ function replay () {
         v.data.relatedTarget = document.querySelector(v.data.relatedTarget);
       }
       var event = new MouseEvent(v.type, v.data);
+      console.info('dispatch before');
       element.dispatchEvent(event);
+      console.info('dispatch after');
     }
-  });
+    ++i;
+  }, 1000);
 }
 function stop () {
   Mode = 0;
@@ -189,7 +217,9 @@ function asyncForEach(seq, fn) {
   var tasks = mapToPromise(seq, fn);
   var p = tasks[0]();
   for (var i = 1; i < tasks.length; ++i) {
-    p = p.then(tasks[i]);
+    p = p.then(function () {
+      return tasks[i]();
+    }.bind(null, i));
   }
 }
 main();
