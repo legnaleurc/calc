@@ -106,6 +106,13 @@ function pushEvent (target, event) {
     target: target,
     type: event.type,
     data: {
+      // Event
+      bubbles: event.bubbles,
+      cancelable: event.cancelable,
+      // UIEvent
+      detail: event.detail,
+      view: event.view,
+      // MouseEvent
       screenX: event.screenX,
       screenY: event.screenY,
       clientX: event.clientX,
@@ -156,7 +163,6 @@ function replay () {
         v.data.relatedTarget = document.querySelector(v.data.relatedTarget);
       }
       var event = new MouseEvent(v.type, v.data);
-      event.target = null;
       element.dispatchEvent(event);
     }
   });
