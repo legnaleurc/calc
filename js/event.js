@@ -71,8 +71,10 @@ function positionInNodeList(element, nodeList) {
   }
   return -1;
 }
+
 var EventQueue = [];
 var Mode = 0;
+
 function main () {
   var oael = EventTarget.prototype.addEventListener;
   EventTarget.prototype.addEventListener = function (type, listener, useCapture) {
@@ -80,7 +82,6 @@ function main () {
       if (Mode === 1) {
         pushEvent(this, event);
       }
-      //
       if (typeof listener === 'function') {
         listener(event);
       } else {
@@ -89,14 +90,9 @@ function main () {
     }.bind(this, listener), useCapture);
   };
 }
+
 function pushEvent (target, event) {
   target = CssLogic.findCssSelector(event.target);
-//   if (target === document) {
-//     target = target.activeElement;
-//     target = '__DOCUMENT__';
-//   } else {
-//     target = CssLogic.findCssSelector(target);
-//   }
   if (event.type === 'click') {
     var relatedTarget = event.relatedTarget;
     if (relatedTarget) {
@@ -129,55 +125,15 @@ function pushEvent (target, event) {
     },
   });
 }
+
 function record () {
   Mode = 1;
   EventQueue = [];
 }
+
 function replay () {
   Mode = 2;
-  // EventQueue.forEach(function (v) {
-  //   var element = document.querySelector(v.target);
-  //   if (!element) {
-  //     console.warn(v.target, 'not found');
-  //     return;
-  //   }
-  //   if (v.type === 'click' || v.type === 'mousedown') {
-  //     if (v.data.relatedTarget) {
-  //       v.data.relatedTarget = document.querySelector(v.data.relatedTarget);
-  //     }
-  //     var event = new MouseEvent(v.type, v.data);
-  //     console.info('dispatch before');
-  //     element.dispatchEvent(event);
-  //     console.info('dispatch after');
-  //   }
-  // });
-  // asyncForEach(EventQueue, function (v) {
-  //   if (v.target === '__DOCUMENT__') {
-  //     var element = document;
-  //   } else {
-  //     var element = document.querySelector(v.target);
-  //   }
-  //   if (!element) {
-  //     console.warn(v.target, 'not found');
-  //     return;
-  //   }
-  //   if (v.type === 'click' || v.type === 'mousedown') {
-  //     if (v.data.relatedTarget) {
-  //       v.data.relatedTarget = document.querySelector(v.data.relatedTarget);
-  //     }
-  //     var event = new MouseEvent(v.type, v.data);
-  //     console.info('dispatch before');
-  //     element.dispatchEvent(event);
-  //     console.info('dispatch after');
-  //   }
-  // });
-  var i = 0;
-  var handle = setInterval(function () {
-    if (i >= EventQueue.length) {
-      clearInterval(handle);
-      return;
-    }
-    var v = EventQueue[i];
+  asyncForEach(EventQueue, function (v) {
     var element = document.querySelector(v.target);
     if (!element) {
       console.warn(v.target, 'not found');
@@ -188,38 +144,28 @@ function replay () {
         v.data.relatedTarget = document.querySelector(v.data.relatedTarget);
       }
       var event = new MouseEvent(v.type, v.data);
-      console.info('dispatch before');
       element.dispatchEvent(event);
-      console.info('dispatch after');
+      return wait(1000);
     }
-    ++i;
-  }, 1000);
+    return wait(0);
+  });
 }
+
 function stop () {
   Mode = 0;
 }
-function wait (msec) {
+
+function wait (msDelay) {
   return new Promise(function (resolve, reject) {
-    var handle = setTimeout(resolve, msec);
+    setTimeout(resolve, msDelay);
   });
 }
-function mapToPromise (seq, fn) {
-  return seq.map(function (v, i, self) {
-    return function (v, i) {
-      return new Promise(function (resolve, reject) {
-        fn(v, i);
-        return wait(500);
-      });
-    }.bind(self, v, i);
-  });
-}
+
+
 function asyncForEach(seq, fn) {
-  var tasks = mapToPromise(seq, fn);
-  var p = tasks[0]();
-  for (var i = 1; i < tasks.length; ++i) {
-    p = p.then(function () {
-      return tasks[i]();
-    }.bind(null, i));
-  }
+  return seq.reduce(function (previous, current, index, self) {
+    return previous.then(fn.bind(this, current, index, self));
+  }, Promise.resolve());
 }
+
 main();
